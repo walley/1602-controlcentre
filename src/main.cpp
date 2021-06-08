@@ -5,12 +5,19 @@
 
 #define VERSION 0.2
 #define SN 221
-#define DHTPIN 2     // what digital pin we're connected to
+#define SNOUT 2202
+// what digital pin we're connected to
+#define DHTPIN 2
+#define DHTOUTPIN 2
+#define LINETYPE DHT
+#define LINEOUTTYPE DS
+
 //#define DHTTYPE DHT11   // DHT 11
 #define DHTTYPE DHT22   // DHT 22  (AM2302), AM2321
 //#define DHTTYPE DHT21   // DHT 21 (AM2301)
 
 DHT dht(DHTPIN, DHTTYPE);
+DHT dht_out(DHTPIN, DHTTYPE);
 
 unsigned long interval = 4000;
 unsigned long prev_millis = 0;
@@ -58,6 +65,34 @@ byte deg_of_c[8] = {
 };
 
 LiquidCrystal_I2C lcd(0x3f, 16, 2); // LCD address, chars and lines
+
+typedef struct value {
+  char name[10];
+  int value;
+};
+
+void create_line(char * type, char * sn, value v[], char count, char * data)
+{
+  char buf[12];
+  char i = 0;
+
+  strcpy(data, "type:,");
+  strcat(data, type);
+  strcpy(data, ",");
+  strcat(data, "sn:");
+  strcat(data, sn);
+  strcat(data, ",");
+
+  for (i = 0; i < count; i++) {
+    strcat(data, v[i].name);
+    strcat(data, ":");
+    dtostrf(v[i].value, 5, 2, buf);
+    strcat(data, buf);
+    strcat(data, ",");
+  }
+
+  strcat(data, ";");
+}
 
 void displayKeyCodes(void)
 {
@@ -166,6 +201,8 @@ void delay_func()
 
 void loop()
 {
+  value vdht[2];
+  value vds;
 
   unsigned long curr_millis = millis();
 
@@ -203,6 +240,9 @@ void loop()
     Serial.print("temp:");
     Serial.print(t);
     Serial.println(";");
+
+    //create_line(SN,h,t);
+    //create_line()
   }
 }
 
