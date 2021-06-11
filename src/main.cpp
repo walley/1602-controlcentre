@@ -2,6 +2,7 @@
 #include "DHT.h"
 #include <Wire.h>
 #include <LiquidCrystal_I2C.h>
+#include <DallasTemperature.h>
 
 #define VERSION 0.2
 #define SN 221
@@ -11,17 +12,18 @@
 #define DHTOUTPIN 2
 #define LINETYPE DHT
 #define LINEOUTTYPE DS
+#define ONE_WIRE_BUS 10
 
 //#define DHTTYPE DHT11   // DHT 11
 #define DHTTYPE DHT22   // DHT 22  (AM2302), AM2321
 //#define DHTTYPE DHT21   // DHT 21 (AM2301)
 
 DHT dht(DHTPIN, DHTTYPE);
-DHT dht_out(DHTPIN, DHTTYPE);
+OneWire one_wire(ONE_WIRE_BUS);
+DallasTemperature dallas(&one_wire);
 
 unsigned long interval = 4000;
 unsigned long prev_millis = 0;
-
 
 #if defined(ARDUINO) && ARDUINO >= 100
 #define printByte(args)  write(args);
@@ -29,9 +31,8 @@ unsigned long prev_millis = 0;
 #define printByte(args)  print(args,BYTE);
 #endif
 
-
 char message_buffer[50];
-
+char data[50];
 
 //uint8_t bell[8]  = {0x4,0xe,0xe,0xe,0x1f,0x0,0x4};
 //uint8_t note[8]  = {0x2,0x3,0x2,0xe,0x1e,0xc,0x0};
@@ -66,9 +67,9 @@ byte deg_of_c[8] = {
 
 LiquidCrystal_I2C lcd(0x3f, 16, 2); // LCD address, chars and lines
 
-typedef struct value {
+struct value {
   char name[10];
-  int value;
+  float value;
 };
 
 void create_line(char * type, char * sn, value v[], char count, char * data)
@@ -76,9 +77,9 @@ void create_line(char * type, char * sn, value v[], char count, char * data)
   char buf[12];
   char i = 0;
 
-  strcpy(data, "type:,");
+  strcpy(data, "type:");
   strcat(data, type);
-  strcpy(data, ",");
+  strcat(data, ",");
   strcat(data, "sn:");
   strcat(data, sn);
   strcat(data, ",");
@@ -118,8 +119,8 @@ void setup()
   Serial.setTimeout(3000);
 
   dht.begin();
-
-  lcd.init();                      // initialize the lcd
+  dallas.begin();
+  lcd.init();
   lcd.backlight();
 
   //lcd.createChar(0, bell);
@@ -202,7 +203,8 @@ void delay_func()
 void loop()
 {
   value vdht[2];
-  value vds;
+  value vds[1];
+  float ds_temp;
 
   unsigned long curr_millis = millis();
 
@@ -215,6 +217,9 @@ void loop()
     float h = dht.readHumidity();
     float t = dht.readTemperature();
 
+    dallas.requestTemperatures();
+    ds_temp = dallas.getTempCByIndex(0);
+
     if (isnan(h) || isnan(t)) {
       Serial.println("Failed to read from DHT sensor!");
       return;
@@ -222,11 +227,13 @@ void loop()
 
     lcd.clear();
     lcd.setCursor(0, 0);
-    lcd.print("temp:");
+    lcd.print("t:");
     lcd.print(t);
     lcd.printByte(9);
+    lcd.print(ds_temp);
+    lcd.printByte(9);
     lcd.setCursor(0, 1);
-    lcd.print("hum:");
+    lcd.print("h:");
     lcd.print(h);
     lcd.print("%");
 
@@ -241,8 +248,17 @@ void loop()
     Serial.print(t);
     Serial.println(";");
 
-    //create_line(SN,h,t);
-    //create_line()
+    strcpy(vdht[0].name,"hum");
+    vdht[0].value=h;
+    strcpy(vdht[1].name,"temp");
+    vdht[1].value=t;
+    strcpy(vds[0].name,"temp");
+    vds[0].value=ds_temp;
+
+    create_line("DHT","2201",vdht,2,data);
+    Serial.println(data);
+    create_line("DS","2202",vds,1,data);
+    Serial.println(data);
   }
 }
 
