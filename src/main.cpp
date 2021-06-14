@@ -12,7 +12,7 @@
 #define DHTOUTPIN 2
 #define LINETYPE DHT
 #define LINEOUTTYPE DS
-#define ONE_WIRE_BUS 10
+#define ONE_WIRE_BUS 12
 
 //#define DHTTYPE DHT11   // DHT 11
 #define DHTTYPE DHT22   // DHT 22  (AM2302), AM2321
@@ -63,6 +63,28 @@ byte deg_of_c[8] = {
   0b00100,
   0b00100,
   0b00011
+};
+
+byte inside[8] = {
+  0b00100,
+  0b10101,
+  0b01110,
+  0b00100,
+  0b01110,
+  0b01010,
+  0b01110,
+  0b00000
+};
+
+byte outside[8] = {
+  0b00100,
+  0b01110,
+  0b10101,
+  0b00100,
+  0b01110,
+  0b01010,
+  0b01110,
+  0b00000
 };
 
 LiquidCrystal_I2C lcd(0x3f, 16, 2); // LCD address, chars and lines
@@ -118,6 +140,8 @@ void setup()
   Serial.begin(115200);
   Serial.setTimeout(3000);
 
+  pinMode(10, INPUT);
+
   dht.begin();
   dallas.begin();
   lcd.init();
@@ -130,7 +154,8 @@ void setup()
   //lcd.createChar(4, duck);
   //lcd.createChar(5, check);
   //lcd.createChar(6, cross);
-  //lcd.createChar(7, retarrow);
+  lcd.createChar(6, inside);
+  lcd.createChar(7, outside);
   lcd.createChar(8, customChar);
   lcd.createChar(9, deg_of_c);
   lcd.home();
@@ -222,14 +247,16 @@ void loop()
 
     if (isnan(h) || isnan(t)) {
       Serial.println("Failed to read from DHT sensor!");
-      return;
+      //return;
     }
 
     lcd.clear();
     lcd.setCursor(0, 0);
     lcd.print("t:");
+    lcd.printByte(6);
     lcd.print(t);
     lcd.printByte(9);
+    lcd.printByte(7);
     lcd.print(ds_temp);
     lcd.printByte(9);
     lcd.setCursor(0, 1);
@@ -237,17 +264,17 @@ void loop()
     lcd.print(h);
     lcd.print("%");
 
-    Serial.print("type:DHT,");
-    Serial.print("sn:");
-    Serial.print(SN);
-    Serial.print(",");
-    Serial.print("hum:");
-    Serial.print(h);
-    Serial.print(",");
-    Serial.print("temp:");
-    Serial.print(t);
-    Serial.println(";");
-
+    /* Serial.print("type:DHT,");
+     Serial.print("sn:");
+     Serial.print(SN);
+     Serial.print(",");
+     Serial.print("hum:");
+     Serial.print(h);
+     Serial.print(",");
+     Serial.print("temp:");
+     Serial.print(t);
+     Serial.println(";");
+    */
     strcpy(vdht[0].name,"hum");
     vdht[0].value=h;
     strcpy(vdht[1].name,"temp");
@@ -255,9 +282,9 @@ void loop()
     strcpy(vds[0].name,"temp");
     vds[0].value=ds_temp;
 
-    create_line("DHT","2201",vdht,2,data);
+    create_line("DHT","221",vdht,2,data);
     Serial.println(data);
-    create_line("DS","2202",vds,1,data);
+    create_line("DS","",vds,1,data);
     Serial.println(data);
   }
 }
