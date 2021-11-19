@@ -4,7 +4,7 @@
 #include <LiquidCrystal_I2C.h>
 #include <DallasTemperature.h>
 
-#define VERSION 0.2
+#define VERSION 0.3
 #define SN 221
 #define SNOUT 2202
 // what digital pin we're connected to
@@ -97,7 +97,7 @@ struct value {
 void create_line(char * type, char * sn, value v[], char count, char * data)
 {
   char buf[12];
-  char i = 0;
+  int i = 0;
 
   strcpy(data, "type:");
   strcat(data, type);
@@ -107,11 +107,14 @@ void create_line(char * type, char * sn, value v[], char count, char * data)
   strcat(data, ",");
 
   for (i = 0; i < count; i++) {
+    if (i > 0) {
+      strcat(data, ",");
+    }
+
     strcat(data, v[i].name);
     strcat(data, ":");
     dtostrf(v[i].value, 5, 2, buf);
     strcat(data, buf);
-    strcat(data, ",");
   }
 
   strcat(data, ";");
@@ -236,7 +239,6 @@ void loop()
   if ((unsigned long)(curr_millis - prev_millis) < interval) {
     delay_func();
   } else  {
-    Serial.println("hi");
     prev_millis = millis();
 
     float h = dht.readHumidity();
@@ -284,8 +286,7 @@ void loop()
 
     create_line("DHT","221",vdht,2,data);
     Serial.println(data);
-    create_line("DS","",vds,1,data);
+    create_line("DS","2202",vds,1,data);
     Serial.println(data);
   }
 }
-
